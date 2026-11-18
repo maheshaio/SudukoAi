@@ -51,6 +51,7 @@ public class BubbleService extends Service {
             int sx, sy;
             float tx, ty;
             boolean moved;
+            long downTime;
 
             @Override
             public boolean onTouch(android.view.View v, MotionEvent e) {
@@ -59,18 +60,26 @@ public class BubbleService extends Service {
                         sx = lp.x; sy = lp.y;
                         tx = e.getRawX(); ty = e.getRawY();
                         moved = false;
+                        downTime = System.currentTimeMillis();
                         return true;
                     case MotionEvent.ACTION_MOVE:
                         float dx = e.getRawX() - tx;
                         float dy = e.getRawY() - ty;
-                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) moved = true;
-                        lp.x = sx + (int) dx;
-                        lp.y = sy + (int) dy;
-                        wm.updateViewLayout(bubble, lp);
+                        if (Math.abs(dx) > 40 || Math.abs(dy) > 40) moved = true;
+                        if (moved) {
+                            lp.x = sx + (int) dx;
+                            lp.y = sy + (int) dy;
+                            wm.updateViewLayout(bubble, lp);
+                        }
                         return true;
                     case MotionEvent.ACTION_UP:
                         if (!moved) {
-                            Toast.makeText(BubbleService.this, "Bubble tap!", Toast.LENGTH_SHORT).show();
+                            long held = System.currentTimeMillis() - downTime;
+                            if (held > 1000) {
+                                stopSelf();
+                            } else {
+                                Toast.makeText(BubbleService.this, "Bubble tap!", Toast.LENGTH_SHORT).show();
+                            }
                         }
                         return true;
                 }
@@ -83,6 +92,9 @@ public class BubbleService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (bubble != null) wm.removeView(bubble);
+        if (bubble != null) {
+            wm.removeView(bubble);
+            bubble = null;
+        }
     }
 }
